@@ -1,6 +1,4 @@
 CoffeeScript  = require './coffee-script'
-child_process = require 'child_process'
-helpers       = require './helpers'
 path          = require 'path'
 
 # Load and run a CoffeeScript file for Node, stripping any `BOM`s.
@@ -34,17 +32,3 @@ if require.extensions
     extension = findExtension filename
     Module._extensions[extension](this, filename)
     @loaded = true
-
-# If we're on Node, patch `child_process.fork` so that Coffee scripts are able
-# to fork both CoffeeScript files, and JavaScript files, directly.
-if child_process
-  {fork} = child_process
-  binary = require.resolve '../../bin/coffee'
-  child_process.fork = (path, args, options) ->
-    if helpers.isCoffee path
-      unless Array.isArray args
-        options = args or {}
-        args = []
-      args = [path].concat args
-      path = binary
-    fork path, args, options
