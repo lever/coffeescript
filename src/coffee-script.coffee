@@ -56,6 +56,9 @@ withPrettyErrors = (fn) ->
 sources = {}
 # Also save source maps if generated, in form of `filename`: `(source map)`.
 sourceMaps = {}
+# Save outputs for stack trace mapping using source-map-support, in the form
+# `filename`: `(output source string)`.
+outputs = {}
 
 # Compile CoffeeScript code to JavaScript, using the Coffee/Jison compiler.
 #
@@ -134,6 +137,7 @@ exports.compile = compile = withPrettyErrors (code, options) ->
     sourceURL = "//# sourceURL=#{options.filename ? 'coffeescript'}"
     js = "#{js}\n#{sourceMapDataURI}\n#{sourceURL}"
 
+  outputs[filename] = js
   if options.sourceMap
     {
       js
@@ -371,18 +375,24 @@ getSourceMap = (filename) ->
   else
     null
 
-# Based on [michaelficarra/CoffeeScriptRedux](http://goo.gl/ZTx1p)
-# NodeJS / V8 have no support for transforming positions in stack traces using
-# sourceMap, so we must monkey-patch Error to display CoffeeScript source
-# positions.
-Error.prepareStackTrace = (err, stack) ->
-  getSourceMapping = (filename, line, column) ->
-    sourceMap = getSourceMap filename
-    answer = sourceMap.sourceLocation [line - 1, column - 1] if sourceMap?
-    if answer? then [answer[0] + 1, answer[1] + 1] else null
+try
+  require('source-map-support').install({
+    environment: 'node'
+    retrieveFile: (path) -> outputs[path]
+  })
+catch
+  # Based on [michaelficarra/CoffeeScriptRedux](http://goo.gl/ZTx1p)
+  # NodeJS / V8 have no support for transforming positions in stack traces using
+  # sourceMap, so we must monkey-patch Error to display CoffeeScript source
+  # positions.
+  Error.prepareStackTrace = (err, stack) ->
+    getSourceMapping = (filename, line, column) ->
+      sourceMap = getSourceMap filename
+      answer = sourceMap.sourceLocation [line - 1, column - 1] if sourceMap?
+      if answer? then [answer[0] + 1, answer[1] + 1] else null
 
-  frames = for frame in stack
-    break if frame.getFunction() is exports.run
-    "    at #{formatSourcePosition frame, getSourceMapping}"
+    frames = for frame in stack
+      break if frame.getFunction() is exports.run
+      "    at #{formatSourcePosition frame, getSourceMapping}"
 
-  "#{err.toString()}\n#{frames.join '\n'}\n"
+    "#{err.toString()}\n#{frames.join '\n'}\n"

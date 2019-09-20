@@ -1,5 +1,5 @@
 {
-  "name": "coffee-script",
+  "name": "coffeescript",
   "description": "Unfancy JavaScript",
   "keywords": [
     "javascript",
@@ -43,6 +43,10 @@
     "highlight.js": "~9.12.0",
     "jison": "~0.4.18",
     "markdown-it": "~8.4.0",
+    "source-map-support": "0.5.x",
     "underscore": "~1.8.3"
+  },
+  "peerDependencies": {
+    "source-map-support": "0.5.x"
   }
 }
