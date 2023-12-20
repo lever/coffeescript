@@ -2584,6 +2584,11 @@ UTILITIES =
       ctor.prototype = parent.prototype;
       child.prototype = new ctor();
       child.__super__ = parent.prototype;
+      if (Object.setPrototypeOf) {
+        Object.setPrototypeOf(child, parent);
+      } else {
+        child.__proto__ = parent;
+      }
       return child;
     }
   "
